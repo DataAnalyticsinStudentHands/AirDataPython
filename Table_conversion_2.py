@@ -16,8 +16,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from pandas import Series, DataFrame
-# from scipy import stats
 import matplotlib as mpl
+import pickle
 # import seaborn as sns
 # %matplotlib qt
 
@@ -66,9 +66,29 @@ I = Unique_frame_Data.List_of_Unique_values[Unique_frame_Data['Column_name'] == 
 Site_List = sorted(list(I.iloc[0]))
 
 pd.options.mode.chained_assignment = None # Ignoring error message regarding chained assignment
-data_new = pd.DataFrame() # Creation of empty dataframe
-i = 0 # considered as iteration no
+
+#loads the saved checkpoints
+try: 
+    data_new = pickle.load(open("data_converted.p", "rb"))
+except:
+    data_new = pd.DataFrame() # Creation of empty dataframe
+
+try:
+    Para_comp_check = pickle.load(open("Parameters_converted.p", "rb"))
+    i = pickle.load(open("iteration_no.p", "rb"))
+except:
+    Para_comp_check = pd.DataFrame(Parameters, columns=['Parameter'])
+    Para_comp_check['check']='Not_done'
+
+try:
+    i = pickle.load(open("iteration_no.p", "rb"))
+except:
+    i = 0 # considered as iteration no
+
+#Converts the csv file into new format
 for column in Parameters: # creates a for loop and checks each parameter column
+    if Para_comp_check.loc[Para_comp_check['Parameter'] == column, 'check'].item() == 'Done':
+        continue
     data_col = pd.DataFrame() #creates new dataframe for each element in Parameters list
     data_col = original_data.loc[original_data['param_name'] == column] #inputs only single element from parameters list into new dataframe: data_col
     data_col = data_col.drop(columns=['param_id','cams','param_name']) #drops unrequired columns from new dataframe: data_col
@@ -76,6 +96,7 @@ for column in Parameters: # creates a for loop and checks each parameter column
     data_col = data_col.sort_values(['site','epoch']) #sorts the dataframe based on site first and then epoch
     data_col = data_col.reset_index(drop=True) #resets the index for the new dataframe: data_col
     data_site_new = pd.DataFrame()
+    print(column)
     for site_no in Site_List:
         data_site = pd.DataFrame()
         data_site = data_col.loc[data_col['site']==site_no] #creates new dataframe based on site for single element fromparameter
@@ -92,10 +113,18 @@ for column in Parameters: # creates a for loop and checks each parameter column
         data_site = data_site.sort_values(['epoch']) #sorts the dataframe based on epoch
         data_site = data_site.reset_index(drop=True) #resets the index for the dataframe: data_site
         data_site_new =  pd.concat([data_site_new, data_site], ignore_index=True) #combines data for all sites (one by one as per for loop) for one single parameter into single dataframe: data_site_new
+        print(site_no)
     if i == 0: #for the first iteration of for loop, the data_site_new dataframe is saved in data_new dataframe
         data_new = data_site_new
     else: #for the remaining iterations of the for loop, the data_new dataframe combines/merges itslef with the data_site_new dataframes based on the site, region and epoch
+        data_new = pd.concat([data_new,data_site_new], axis=1)
         data_new = pd.merge(data_new, data_site_new, how='outer', on=['site','epoch', 'region'])  
+    print(i)
     i=i+1 # increases the iteration no
-          
-data_new.to_csv('2013_New_format_2.csv') # saves the data_new dataframe as a csv file in the same directory
+    Para_comp_check.check[Para_comp_check.Parameter == column] = 'Done' #assigns 'done' to column if for loop has been completed for it
+    pickle.dump(i, open("iteration_no.p", "wb")) #checkpoint: saves iteration no i to be used later in case script fails
+    pickle.dump(Para_comp_check, open("Parameters_converted.p", "wb")) #checkpoint: saves para_comp_check dataframe to be used later in case script fails
+    pickle.dump(data_new, open("data_converted.p", "wb")) #checkpoint: saves data_new dataframe to be used later in case script fails
+    data_new.to_csv('2013_New_format_sample.csv') # saves the data_new dataframe as a csv file in the same directory
+
+
