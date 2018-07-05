@@ -1,17 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Jun 29 11:55:17 2018
-
-@author: Chinmay Dalvi
-"""
-
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Jun 25 10:19:14 2018
-
-@author: Chinmay Dalvi
-"""
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
